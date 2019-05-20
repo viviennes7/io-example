@@ -23,7 +23,6 @@ public class IoExampleApplication {
     @GetMapping("/3second")
     public String threeSecond() throws InterruptedException {
         Thread.sleep(3000);
-        log.info("call ::: {}", this.atomicInteger.incrementAndGet());
-        return "success";
+        return "success - " + this.atomicInteger.incrementAndGet();
     }
 }
