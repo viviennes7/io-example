@@ -5,9 +5,12 @@ import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.StopWatch;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -93,33 +96,35 @@ public class IOTest {
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        final WebClient webclient = WebClient.builder().build();
+        ConnectionProvider fixedPool = ConnectionProvider.fixed("fixedPool", 1);
+        HttpClient httpClient = HttpClient.create(fixedPool);
+
+        final WebClient webclient = WebClient//.create();
+                .builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
 
         webclient
                 .get()
                 .uri(THREE_SECOND_URL)
                 .retrieve()
                 .bodyToMono(String.class)
-                .log()
-                .subscribe();
+                .subscribe(System.out::println);
 
         webclient
                 .get()
                 .uri(THREE_SECOND_URL)
                 .retrieve()
                 .bodyToMono(String.class)
-                .log()
-                .subscribe();
+                .subscribe(System.out::println);
 
         webclient
                 .get()
                 .uri(THREE_SECOND_URL)
                 .retrieve()
                 .bodyToMono(String.class)
-                .log()
-                .subscribe();
-
-
-        Thread.sleep(5000);
+                .subscribe(System.out::println);
+        
+        Thread.sleep(15000);
     }
 }
