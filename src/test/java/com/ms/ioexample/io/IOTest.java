@@ -104,27 +104,15 @@ public class IOTest {
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
 
-        webclient
-                .get()
-                .uri(THREE_SECOND_URL)
-                .retrieve()
-                .bodyToMono(String.class)
-                .subscribe(System.out::println);
+        for (int i = 0; i < 3; i++) {
+            webclient
+                    .get()
+                    .uri(THREE_SECOND_URL)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .subscribe(System.out::println);
+        }
 
-        webclient
-                .get()
-                .uri(THREE_SECOND_URL)
-                .retrieve()
-                .bodyToMono(String.class)
-                .subscribe(System.out::println);
-
-        webclient
-                .get()
-                .uri(THREE_SECOND_URL)
-                .retrieve()
-                .bodyToMono(String.class)
-                .subscribe(System.out::println);
-        
         Thread.sleep(15000);
     }
 }
