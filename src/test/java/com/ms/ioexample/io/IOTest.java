@@ -98,10 +98,10 @@ public class IOTest {
 
         ConnectionProvider fixedPool = ConnectionProvider.fixed("fixedPool", 1);
         HttpClient httpClient = HttpClient.create(fixedPool);
-
+        System.setProperty("reactor.netty.ioWorkerCount", "1");
         final WebClient webclient = WebClient//.create();
                 .builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
+//                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
 
         for (int i = 0; i < 3; i++) {
