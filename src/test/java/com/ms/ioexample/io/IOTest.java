@@ -1,5 +1,7 @@
 package com.ms.ioexample.io;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -17,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class IOTest {
 
     private static final String THREE_SECOND_URL = "http://localhost:8080/3second";
+    private final CountDownLatch count = new CountDownLatch(3);
 
     @Before
     public void setup() {
@@ -110,9 +113,14 @@ public class IOTest {
                     .uri(THREE_SECOND_URL)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .subscribe(System.out::println);
+                    .subscribe(it -> {
+                       count.countDown();
+                       System.out.println(it);
+                    });
         }
 
-        Thread.sleep(15000);
+        count.await(10, TimeUnit.SECONDS);
+        stopWatch.stop();
+        System.out.println(stopWatch.getTotalTimeSeconds());
     }
 }
