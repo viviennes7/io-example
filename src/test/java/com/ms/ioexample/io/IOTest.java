@@ -1,28 +1,36 @@
 package com.ms.ioexample.io;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StopWatch;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.ConnectionProvider;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.DEFINED_PORT;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = DEFINED_PORT, properties = {"server.port=8080"})
 public class IOTest {
 
     private static final String THREE_SECOND_URL = "http://localhost:8080/3second";
-    private final CountDownLatch count = new CountDownLatch(3);
+    private static final int LOOP_COUNT = 100;
+
+    private final WebClient webClient = WebClient.create();
+    private final CountDownLatch count = new CountDownLatch(LOOP_COUNT);
 
     @Before
     public void setup() {
+        System.setProperty("reactor.netty.ioWorkerCount", "1");
     }
 
     @Test
@@ -33,8 +41,9 @@ public class IOTest {
         stopWatch.start();
 
         for (int i = 0; i < 3; i++) {
-            final ResponseEntity<String> response = restTemplate.exchange(THREE_SECOND_URL, HttpMethod.GET, HttpEntity.EMPTY, String.class);
-            assertThat(response.getBody()).isEqualTo("success");
+            final ResponseEntity<String> response =
+                    restTemplate.exchange(THREE_SECOND_URL, HttpMethod.GET, HttpEntity.EMPTY, String.class);
+            assertThat(response.getBody()).contains("success");
         }
 
         stopWatch.stop();
@@ -47,8 +56,7 @@ public class IOTest {
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        WebClient.builder()
-                .build()
+        this.webClient
                 .get()
                 .uri(THREE_SECOND_URL)
                 .retrieve()
@@ -67,8 +75,7 @@ public class IOTest {
     public void thread() {
         System.out.println(1);
 
-        new Thread(() -> System.out.println(2))
-                .start();
+        new Thread(() -> System.out.println(2)).start();
 
         System.out.println(3);
     }
@@ -78,18 +85,16 @@ public class IOTest {
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        WebClient.builder()
-                .build()
+        this.webClient
                 .get()
                 .uri(THREE_SECOND_URL)
                 .retrieve()
                 .bodyToMono(String.class)
                 .log()
-                .doOnTerminate(() -> {
+                .subscribe(it -> {
                     stopWatch.stop();
                     System.out.println(stopWatch.getTotalTimeSeconds());
-                })
-                .subscribe();
+                });
 
         Thread.sleep(5000);
     }
@@ -98,24 +103,15 @@ public class IOTest {
     public void nonBlocking3() throws InterruptedException {
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-
-        ConnectionProvider fixedPool = ConnectionProvider.fixed("fixedPool", 1);
-        HttpClient httpClient = HttpClient.create(fixedPool);
-        System.setProperty("reactor.netty.ioWorkerCount", "1");
-        final WebClient webclient = WebClient//.create();
-                .builder()
-//                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .build();
-
-        for (int i = 0; i < 3; i++) {
-            webclient
+        for (int i = 0; i < LOOP_COUNT; i++) {
+            this.webClient
                     .get()
                     .uri(THREE_SECOND_URL)
                     .retrieve()
                     .bodyToMono(String.class)
                     .subscribe(it -> {
-                       count.countDown();
-                       System.out.println(it);
+                        count.countDown();
+                        System.out.println(it);
                     });
         }
 
@@ -124,3 +120,4 @@ public class IOTest {
         System.out.println(stopWatch.getTotalTimeSeconds());
     }
 }
+
